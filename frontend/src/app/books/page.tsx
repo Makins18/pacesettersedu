@@ -12,7 +12,7 @@ export default function BooksPage() {
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-    const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
+    const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string, downloadUrl?: string }>({ type: null, msg: '' });
 
     useEffect(() => {
         const fetchBooks = async () => {
@@ -39,7 +39,7 @@ export default function BooksPage() {
             amount: book.price,
             customerName: "Guest User",
             customerEmail: "customer@example.com",
-            reference: `BOOK-${Date.now()}`,
+            reference: `BOOK-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
             onSuccess: async (response) => {
                 console.log(">>> Monnify Payment Success Response:", response);
                 setStatus({ type: 'success', msg: 'Processing your order... please wait.' });
@@ -60,8 +60,12 @@ export default function BooksPage() {
                     });
 
                     if (verifyRes.data.success) {
-                        alert("Thank you for your purchase! Your order has been recorded.");
-                        setStatus({ type: 'success', msg: 'Payment successful! Order recorded.' });
+                        const orderId = verifyRes.data.order.id;
+                        setStatus({
+                            type: 'success',
+                            msg: 'Payment successful! Order recorded.',
+                            downloadUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/download/invoice/${orderId}`
+                        });
                     } else {
                         throw new Error(verifyRes.data.message || "Verification failed");
                     }
@@ -83,12 +87,29 @@ export default function BooksPage() {
                         initial={{ opacity: 0, y: -50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -50 }}
-                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-3 ${status.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl font-bold flex flex-col items-center gap-3 min-w-[300px] ${status.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
                             }`}
                     >
-                        {status.type === 'success' ? <Star size={20} fill="white" /> : <ShoppingBag size={20} />}
-                        {status.msg}
-                        <button onClick={() => setStatus({ type: null, msg: '' })} className="ml-4 opacity-50 hover:opacity-100">×</button>
+                        <div className="flex items-center gap-3">
+                            {status.type === 'success' ? <Star size={20} fill="white" /> : <ShoppingBag size={20} />}
+                            {status.msg}
+                        </div>
+
+                        {status.downloadUrl && (
+                            <motion.a
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                href={status.downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-white text-green-700 px-4 py-2 rounded-lg text-sm shadow-md hover:bg-gray-100 transition"
+                            >
+                                <Download size={16} />
+                                Download Proof of Purchase
+                            </motion.a>
+                        )}
+
+                        <button onClick={() => setStatus({ type: null, msg: '' })} className="absolute top-2 right-2 opacity-50 hover:opacity-100 text-xs">Close</button>
                     </motion.div>
                 )}
 

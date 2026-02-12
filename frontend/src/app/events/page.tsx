@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, MapPin, Users, ArrowRight, Tag, Video, X } from "lucide-react";
+import { Calendar, MapPin, Users, ArrowRight, Tag, Video, X, Download } from "lucide-react";
 import { useMonnify } from "@/hooks/useMonnify";
 import api from "@/lib/api";
 
@@ -12,7 +12,7 @@ export default function EventsPage() {
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-    const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
+    const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string, downloadUrl?: string }>({ type: null, msg: '' });
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -34,13 +34,13 @@ export default function EventsPage() {
             amount: event.price,
             customerName: "Guest Attendee",
             customerEmail: "attendee@example.com",
-            reference: `EVT-${Date.now()}`,
+            reference: `EVT-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
             onSuccess: async (response) => {
                 try {
                     const transRef = response.transactionReference || response.paymentReference;
                     console.log(">>> Sending Reference to Backend:", transRef);
 
-                    await api.post("/api/monnify/verify", {
+                    const verifyRes = await api.post("/api/monnify/verify", {
                         transactionReference: transRef,
                         cartItems: [{
                             id: event.id,
@@ -50,8 +50,15 @@ export default function EventsPage() {
                             quantity: 1
                         }]
                     });
-                    alert("Registration Successful! Your spot is secured.");
-                    setStatus({ type: 'success', msg: 'Registration Successful! Your spot is secured.' });
+
+                    if (verifyRes.data.success) {
+                        const orderId = verifyRes.data.order.id;
+                        setStatus({
+                            type: 'success',
+                            msg: 'Registration Successful! Your spot is secured.',
+                            downloadUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/download/ticket/${orderId}`
+                        });
+                    }
                 } catch (err) {
                     console.error("Verification failed", err);
                     setStatus({ type: 'error', msg: 'Payment received, but registration failed. Support notified.' });
@@ -69,12 +76,29 @@ export default function EventsPage() {
                         initial={{ opacity: 0, y: -50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -50 }}
-                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-3 ${status.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl font-bold flex flex-col items-center gap-3 min-w-[300px] ${status.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
                             }`}
                     >
-                        {status.type === 'success' ? <Calendar size={20} /> : <Tag size={20} />}
-                        {status.msg}
-                        <button onClick={() => setStatus({ type: null, msg: '' })} className="ml-4 opacity-50 hover:opacity-100">×</button>
+                        <div className="flex items-center gap-3">
+                            {status.type === 'success' ? <Calendar size={20} /> : <Tag size={20} />}
+                            {status.msg}
+                        </div>
+
+                        {status.downloadUrl && (
+                            <motion.a
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                href={status.downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm shadow-md hover:bg-gray-100 transition"
+                            >
+                                <Download size={16} />
+                                Download Event Ticket
+                            </motion.a>
+                        )}
+
+                        <button onClick={() => setStatus({ type: null, msg: '' })} className="absolute top-2 right-2 opacity-50 hover:opacity-100 text-xs text-white">Close</button>
                     </motion.div>
                 )}
 
