@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ShoppingCart, ShoppingBag } from "lucide-react";
+import { Star, ShoppingCart, ShoppingBag, Video, Download, X } from "lucide-react";
 import { useMonnify } from "@/hooks/useMonnify";
 import api from "@/lib/api";
 
@@ -11,6 +11,7 @@ export default function BooksPage() {
     const { initializePayment } = useMonnify();
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
 
     useEffect(() => {
@@ -90,7 +91,33 @@ export default function BooksPage() {
                         <button onClick={() => setStatus({ type: null, msg: '' })} className="ml-4 opacity-50 hover:opacity-100">×</button>
                     </motion.div>
                 )}
+
+                {/* Video Modal */}
+                {selectedVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+                    >
+                        <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
+                            <video
+                                src={selectedVideo}
+                                controls
+                                autoPlay
+                                className="w-full h-full"
+                            />
+                            <button
+                                onClick={() => setSelectedVideo(null)}
+                                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-colors text-white"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
             </AnimatePresence>
+
             <div className="container mx-auto max-w-6xl">
                 <div className="text-center mb-16">
                     <motion.h2
@@ -132,7 +159,31 @@ export default function BooksPage() {
                                 ) : (
                                     <ShoppingBag className="w-16 h-16 text-gray-300 dark:text-gray-700" />
                                 )}
-                                <div className="absolute inset-0 bg-primary-600/0 group-hover:bg-primary-600/10 transition-colors" />
+
+                                {/* Overlay Icons for Multimedia */}
+                                <div className="absolute top-4 right-4 flex flex-col gap-2 z-10 transition-transform group-hover:-translate-x-1">
+                                    {book.videoUrl && (
+                                        <button
+                                            onClick={() => setSelectedVideo(book.videoUrl)}
+                                            className="bg-white/90 dark:bg-gray-800/90 p-2.5 rounded-xl shadow-lg hover:scale-110 transition active:scale-95 text-primary-600"
+                                            title="Watch Preview"
+                                        >
+                                            <Video size={20} />
+                                        </button>
+                                    )}
+                                    {book.fileUrl && (
+                                        <a
+                                            href={book.fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-white/90 dark:bg-gray-800/90 p-2.5 rounded-xl shadow-lg hover:scale-110 transition active:scale-95 text-blue-600"
+                                            title="Download Sample"
+                                        >
+                                            <Download size={20} />
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="absolute inset-0 bg-primary-600/0 group-hover:bg-primary-600/5 transition-colors" />
                             </div>
 
                             <div className="p-6">

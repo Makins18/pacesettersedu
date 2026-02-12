@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, MapPin, Users, ArrowRight, Tag } from "lucide-react";
+import { Calendar, MapPin, Users, ArrowRight, Tag, Video, X } from "lucide-react";
 import { useMonnify } from "@/hooks/useMonnify";
 import api from "@/lib/api";
 
@@ -11,6 +11,7 @@ export default function EventsPage() {
     const { initializePayment } = useMonnify();
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
 
     useEffect(() => {
@@ -76,7 +77,33 @@ export default function EventsPage() {
                         <button onClick={() => setStatus({ type: null, msg: '' })} className="ml-4 opacity-50 hover:opacity-100">×</button>
                     </motion.div>
                 )}
+
+                {/* Video Modal */}
+                {selectedVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+                    >
+                        <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
+                            <video
+                                src={selectedVideo}
+                                controls
+                                autoPlay
+                                className="w-full h-full"
+                            />
+                            <button
+                                onClick={() => setSelectedVideo(null)}
+                                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-colors text-white"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
             </AnimatePresence>
+
             <div className="container mx-auto max-w-5xl">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                     <div>
@@ -90,11 +117,6 @@ export default function EventsPage() {
                         <p className="text-gray-600 dark:text-gray-400">
                             Professional development and training sessions delivered by industry experts.
                         </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer hover:border-primary-500 transition">All</span>
-                        <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer hover:border-primary-500 transition">Professional</span>
-                        <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer hover:border-primary-500 transition">Students</span>
                     </div>
                 </div>
 
@@ -129,6 +151,17 @@ export default function EventsPage() {
                                             <Calendar size={120} />
                                         </div>
                                     )}
+
+                                    {/* Video Teaser Button directly on image */}
+                                    {event.videoUrl && (
+                                        <button
+                                            onClick={() => setSelectedVideo(event.videoUrl)}
+                                            className="absolute md:relative z-20 bg-white/20 hover:bg-white/40 p-4 rounded-full backdrop-blur-md transition-all scale-0 group-hover:scale-100 mb-4 border border-white/30"
+                                        >
+                                            <Video size={32} />
+                                        </button>
+                                    )}
+
                                     <div className="relative z-10 flex flex-col items-center bg-black/20 w-full h-full justify-center">
                                         <span className="text-4xl font-black mb-1 leading-none">
                                             {new Date(event.date).getDate()}
