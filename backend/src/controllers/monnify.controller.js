@@ -40,7 +40,12 @@ export const verifyMonnifyPayment = async (req, res) => {
     console.log(`>>> Starting verification for reference: ${transactionReference}`);
 
     if (!transactionReference) {
-        return res.status(400).json({ message: "Transaction reference is required" });
+        console.error("✗ Verification Error: Missing transactionReference in request body:", req.body);
+        return res.status(400).json({
+            success: false,
+            message: "Transaction reference is required",
+            receivedBody: req.body
+        });
     }
 
     try {

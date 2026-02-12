@@ -44,8 +44,11 @@ export default function BooksPage() {
                 setStatus({ type: 'success', msg: 'Processing your order... please wait.' });
 
                 try {
+                    const transRef = response.transactionReference || response.paymentReference;
+                    console.log(">>> Sending Reference to Backend:", transRef);
+
                     const verifyRes = await api.post("/api/monnify/verify", {
-                        transactionReference: response.transactionReference,
+                        transactionReference: transRef,
                         cartItems: [{
                             id: book.id,
                             title: book.title,
@@ -119,8 +122,16 @@ export default function BooksPage() {
                             whileHover={{ y: -8 }}
                             className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-lg shadow-gray-200/40 dark:shadow-none group"
                         >
-                            <div className="relative h-64 bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-8">
-                                <ShoppingBag className="w-16 h-16 text-gray-300 dark:text-gray-700" />
+                            <div className="relative h-64 bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                                {book.imageUrl ? (
+                                    <img
+                                        src={book.imageUrl}
+                                        alt={book.title}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                ) : (
+                                    <ShoppingBag className="w-16 h-16 text-gray-300 dark:text-gray-700" />
+                                )}
                                 <div className="absolute inset-0 bg-primary-600/0 group-hover:bg-primary-600/10 transition-colors" />
                             </div>
 

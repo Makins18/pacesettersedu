@@ -35,10 +35,12 @@ export default function EventsPage() {
             customerEmail: "attendee@example.com",
             reference: `EVT-${Date.now()}`,
             onSuccess: async (response) => {
-                console.log("Registration Successful", response);
                 try {
+                    const transRef = response.transactionReference || response.paymentReference;
+                    console.log(">>> Sending Reference to Backend:", transRef);
+
                     await api.post("/api/monnify/verify", {
-                        transactionReference: response.transactionReference,
+                        transactionReference: transRef,
                         cartItems: [{
                             id: event.id,
                             title: event.title,
@@ -115,16 +117,26 @@ export default function EventsPage() {
                             className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary-200 dark:hover:border-primary-900/50 transition-all group"
                         >
                             <div className="flex flex-col md:flex-row">
-                                <div className="md:w-64 bg-primary-600 p-8 flex flex-col justify-center items-center text-white relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-2 opacity-10">
-                                        <Calendar size={120} />
+                                <div className="md:w-64 bg-primary-600 flex flex-col justify-center items-center text-white relative overflow-hidden h-48 md:h-auto">
+                                    {event.imageUrl ? (
+                                        <img
+                                            src={event.imageUrl}
+                                            alt={event.title}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                    ) : (
+                                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                                            <Calendar size={120} />
+                                        </div>
+                                    )}
+                                    <div className="relative z-10 flex flex-col items-center bg-black/20 w-full h-full justify-center">
+                                        <span className="text-4xl font-black mb-1 leading-none">
+                                            {new Date(event.date).getDate()}
+                                        </span>
+                                        <span className="uppercase text-sm font-bold tracking-widest">
+                                            {new Date(event.date).toLocaleString('default', { month: 'short' })}
+                                        </span>
                                     </div>
-                                    <span className="text-4xl font-black mb-1 leading-none">
-                                        {new Date(event.date).getDate()}
-                                    </span>
-                                    <span className="uppercase text-sm font-bold tracking-widest">
-                                        {new Date(event.date).toLocaleString('default', { month: 'short' })}
-                                    </span>
                                 </div>
 
                                 <div className="flex-1 p-8 flex flex-col justify-between">
