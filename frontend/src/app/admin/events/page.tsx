@@ -13,7 +13,7 @@ export default function AdminEvents() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<any>(null);
     const [newEvent, setNewEvent] = useState({
-        title: "", date: "", location: "", price: "", slots: "50",
+        title: "", date: "", location: "", price: "", capacity: "50",
         category: "Masterclass", description: "", imageUrl: "", videoUrl: ""
     });
     const [uploading, setUploading] = useState(false);
@@ -66,7 +66,7 @@ export default function AdminEvents() {
             setIsAddModalOpen(false);
             setEditingEvent(null);
             setNewEvent({
-                title: "", date: "", location: "", price: "", slots: "50",
+                title: "", date: "", location: "", price: "", capacity: "50",
                 category: "Masterclass", description: "", imageUrl: "", videoUrl: ""
             });
             fetchEvents();
@@ -159,8 +159,8 @@ export default function AdminEvents() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${event.slots > 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
-                                                        {event.slots > 0 ? "Open" : "Full"}
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${(event.capacity || 0) > (event.registered || 0) ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+                                                        {(event.capacity || 0) > (event.registered || 0) ? "Open" : "Full"}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
@@ -287,6 +287,18 @@ export default function AdminEvents() {
                                             </span>
                                             <input type="file" className="hidden" accept="video/*" onChange={e => handleFileUpload(e, 'videoUrl')} />
                                         </label>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Capacity</label>
+                                        <input
+                                            type="number" required
+                                            className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                                            value={newEvent.capacity}
+                                            onChange={e => setNewEvent({ ...newEvent, capacity: e.target.value })}
+                                        />
                                     </div>
                                 </div>
 

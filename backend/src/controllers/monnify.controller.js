@@ -71,6 +71,11 @@ export const verifyMonnifyPayment = async (req, res) => {
 
             if (!order) {
                 console.log(">>> Creating new order in database...");
+
+                if (!cartItems || !Array.isArray(cartItems)) {
+                    throw new Error("Missing or invalid cartItems in request");
+                }
+
                 // Map cartItems to OrderItem creation data
                 const orderItemsData = cartItems.map(item => {
                     const data = {
@@ -153,10 +158,13 @@ export const verifyMonnifyPayment = async (req, res) => {
         }
     } catch (error) {
         const errorMsg = error.response?.data || error.message;
+        const stackTrace = error.stack;
         console.error("✗ Monnify Verification Error:", errorMsg);
+        console.error("✗ Full Error Details:", error);
         res.status(500).json({
             message: "Payment verification failed on server",
-            error: errorMsg
+            error: errorMsg,
+            details: error.message
         });
     }
 };

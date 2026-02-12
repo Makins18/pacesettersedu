@@ -205,7 +205,7 @@ export default function EventsPage() {
                                             </span>
                                             <div className="flex items-center text-xs text-green-600 font-bold">
                                                 <Users size={14} className="mr-1" />
-                                                {event.slots || 50} spots left
+                                                {(event.capacity || 50) - (event.registered || 0)} spots left
                                             </div>
                                         </div>
                                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-primary-600 transition-colors">

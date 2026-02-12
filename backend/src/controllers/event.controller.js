@@ -30,11 +30,23 @@ export const getEvents = async (req, res) => {
 export const createEvent = async (req, res) => {
     try {
         const data = { ...req.body };
+
+        // Map slots to capacity if needed (frontend legacy)
+        if (data.slots && !data.capacity) data.capacity = data.slots;
+
+        // Conversions
         if (data.price) data.price = parseFloat(data.price);
         if (data.capacity) data.capacity = parseInt(data.capacity);
         if (data.date) data.date = new Date(data.date);
 
-        const event = await prisma.event.create({ data });
+        // Sanitize: Only include fields present in Prisma schema
+        const validFields = ['title', 'description', 'date', 'price', 'capacity', 'registered', 'location', 'category', 'imageUrl', 'videoUrl', 'fileUrl', 'status'];
+        const sanitizedData = {};
+        validFields.forEach(field => {
+            if (data[field] !== undefined) sanitizedData[field] = data[field];
+        });
+
+        const event = await prisma.event.create({ data: sanitizedData });
 
         // Invalidate cache if Redis is available
         if (isRedisAvailable()) {
@@ -44,25 +56,31 @@ export const createEvent = async (req, res) => {
         res.status(201).json(event);
     } catch (error) {
         console.error("Error creating event:", error);
-        res.status(500).json({ message: "Error creating event" });
+        res.status(500).json({ message: "Error creating event", error: error.message });
     }
 };
 
 export const updateEvent = async (req, res) => {
     try {
         const data = { ...req.body };
+
+        // Map slots to capacity
+        if (data.slots && !data.capacity) data.capacity = data.slots;
+
         if (data.price) data.price = parseFloat(data.price);
         if (data.capacity) data.capacity = parseInt(data.capacity);
         if (data.date) data.date = new Date(data.date);
 
-        // Remove system fields
-        delete data.id;
-        delete data.createdAt;
-        delete data.updatedAt;
+        // Sanitize
+        const validFields = ['title', 'description', 'date', 'price', 'capacity', 'registered', 'location', 'category', 'imageUrl', 'videoUrl', 'fileUrl', 'status'];
+        const sanitizedData = {};
+        validFields.forEach(field => {
+            if (data[field] !== undefined) sanitizedData[field] = data[field];
+        });
 
         const event = await prisma.event.update({
             where: { id: req.params.id },
-            data
+            data: sanitizedData
         });
 
         // Invalidate cache if Redis is available
@@ -73,7 +91,7 @@ export const updateEvent = async (req, res) => {
         res.json(event);
     } catch (error) {
         console.error("Error updating event:", error);
-        res.status(500).json({ message: "Error updating event" });
+        res.status(500).json({ message: "Error updating event", error: error.message });
     }
 };
 
