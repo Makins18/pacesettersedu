@@ -30,6 +30,7 @@ export default function EventsPage() {
 
     const handleRegister = (event: any) => {
         setStatus({ type: null, msg: '' });
+        // Initializing payment directly as requested for production
         initializePayment({
             amount: event.price,
             customerName: "Guest Attendee",

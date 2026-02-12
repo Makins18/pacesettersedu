@@ -20,54 +20,52 @@ export const generateInvoicePDF = (order) => {
             doc.pipe(stream);
 
             // --- Header & Branding ---
-            doc.fillColor("#444444").fontSize(20).text("PACESETTERS", { align: "right" });
-            doc.fontSize(10).text("Phonics and Diction Institute", { align: "right" });
-            doc.text("Lagos, Nigeria", { align: "right" });
-            doc.moveDown();
+            doc.fillColor("#1e40af").fontSize(26).text("PACESETTERS", { align: "right" });
+            doc.fontSize(10).fillColor("#4b5563").text("Phonics and Diction Institute", { align: "right" });
+            doc.text("Lagos, Nigeria | +234 812 345 6789", { align: "right" });
+            doc.moveDown(2);
 
-            // --- Title ---
-            doc.fillColor("#2563eb").fontSize(28).text("INVOICE", 50, 50);
-            doc.fillColor("#444444").fontSize(10).text(`Number: INV-${order.reference?.split('-')[1] || order.id.slice(0, 8)}`, 50, 85);
-            doc.text(`Date: ${new Date().toLocaleDateString()}`, 50, 100);
-            doc.moveDown();
+            // --- Title & Metadata ---
+            doc.fillColor("#1e40af").fontSize(30).text("OFFICIAL RECEIPT", 50, 50);
+            doc.fontSize(10).fillColor("#6b7280").text(`Transaction Ref: ${order.reference || order.id.slice(0, 10)}`, 50, 85);
+            doc.text(`Date Issued: ${new Date().toLocaleDateString()}`, 50, 100);
+            doc.moveDown(4);
 
-            // --- Billing Info ---
-            doc.fontSize(12).font("Helvetica-Bold").text("Billed To:", 50, 130);
-            doc.font("Helvetica").fontSize(10).text(order.userEmail || "Customer", 50, 145);
-            doc.moveDown();
+            // --- Customer Info ---
+            doc.fillColor("#111827").fontSize(12).text("CUSTOMER DETAILS:", 50, 160);
+            doc.fontSize(11).fillColor("#374151").text(`Email: ${order.userEmail}`, 50, 180);
+            doc.moveDown(3);
 
             // --- Table Header ---
-            const tableTop = 180;
-            doc.font("Helvetica-Bold");
-            doc.text("Item Description", 50, tableTop);
-            doc.text("Qty", 300, tableTop, { width: 50, align: "center" });
-            doc.text("Price", 350, tableTop, { width: 100, align: "right" });
-            doc.text("Total", 450, tableTop, { width: 100, align: "right" });
+            const tableTop = 240;
+            doc.rect(50, tableTop, 500, 30).fill("#1e40af");
+            doc.fillColor("white").fontSize(10).text("ITEM DESCRIPTION", 60, tableTop + 10);
+            doc.text("QTY", 350, tableTop + 10, { width: 40, align: "center" });
+            doc.text("UNIT PRICE", 400, tableTop + 10, { width: 70, align: "right" });
+            doc.text("TOTAL", 480, tableTop + 10, { width: 60, align: "right" });
 
-            doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-            doc.font("Helvetica").moveDown();
-
-            // --- Table Content ---
-            let y = tableTop + 25;
+            // --- Items ---
+            let currentY = tableTop + 40;
             order.items.forEach(item => {
-                const subtotal = (item.price * item.quantity).toLocaleString();
-                doc.text(item.title, 50, y);
-                doc.text(item.quantity.toString(), 300, y, { width: 50, align: "center" });
-                doc.text(`N${item.price.toLocaleString()}`, 350, y, { width: 100, align: "right" });
-                doc.text(`N${subtotal}`, 450, y, { width: 100, align: "right" });
-                y += 20;
+                doc.fillColor("#374151").text(item.title, 60, currentY, { width: 280 });
+                doc.text(item.quantity.toString(), 350, currentY, { width: 40, align: "center" });
+                doc.text(`N${item.price.toLocaleString()}`, 400, currentY, { width: 70, align: "right" });
+                doc.text(`N${(item.price * item.quantity).toLocaleString()}`, 480, currentY, { width: 60, align: "right" });
+                currentY += 30;
             });
 
-            // --- Footer / Totals ---
-            doc.moveTo(350, y + 10).lineTo(550, y + 10).stroke();
-            doc.fontSize(12).font("Helvetica-Bold").text("TOTAL AMOUNT:", 350, y + 20);
-            doc.text(`N${order.totalAmount.toLocaleString()}`, 450, y + 20, { width: 100, align: "right" });
+            // --- Footer Total ---
+            doc.rect(340, currentY + 10, 210, 45).fill("#f9fafb");
+            doc.rect(340, currentY + 10, 210, 45).stroke("#e5e7eb");
+            doc.fillColor("#111827").fontSize(12).text("AMOUNT PAID", 350, currentY + 25);
+            doc.fillColor("#1e40af").fontSize(14).text(`N${order.totalAmount.toLocaleString()}`, 450, currentY + 25, { align: "right", width: 90 });
 
-            doc.fontSize(10).font("Helvetica-Oblique").text("This is an electronically generated proof of purchase.", 50, y + 60, { align: "center" });
+            // --- Note ---
+            doc.fillColor("#9ca3af").fontSize(10)
+                .text("Thank you for your business. This document serves as proof of payment.", 50, 720, { align: "center", width: 500 });
 
             doc.end();
             stream.on('finish', () => resolve(filePath));
-            stream.on('error', (err) => reject(err));
         } catch (err) {
             reject(err);
         }
@@ -78,40 +76,44 @@ export const generateTicketPDF = (order) => {
     return new Promise((resolve, reject) => {
         try {
             ensureDir("tickets");
-            const doc = new PDFDocument({ size: [400, 250], margin: 20 });
+            const doc = new PDFDocument({ size: [600, 320], margin: 0 });
             const filePath = path.resolve(`tickets/ticket-${order.id}.pdf`);
             const stream = fs.createWriteStream(filePath);
 
             doc.pipe(stream);
 
-            // Background color
-            doc.rect(0, 0, 400, 250).fill("#2563eb");
+            // Primary Background
+            doc.rect(0, 0, 600, 320).fill("#1e40af");
 
-            // Ticket Outer Border
-            doc.rect(10, 10, 380, 230).strokeColor("white").lineWidth(2).stroke();
+            // Modern Accents
+            doc.opacity(0.15).circle(600, 0, 180).fill("white");
+            doc.circle(0, 320, 120).fill("white");
+            doc.opacity(1);
 
-            // Content
-            doc.fillColor("white").fontSize(10).text("EVENT ENTRY PASS", 20, 30);
-            doc.fontSize(18).font("Helvetica-Bold").text("PACESETTERS", 20, 50);
-            doc.fontSize(8).font("Helvetica").text("Diction & Phonics Institute", 20, 70);
+            // Ticket Border
+            doc.rect(20, 20, 560, 280).lineWidth(3).stroke("white");
 
-            doc.moveTo(20, 90).lineTo(380, 90).stroke();
+            // Header
+            doc.fillColor("white").fontSize(28).text("ENTRY PASS", 50, 60);
+            doc.fontSize(12).text("PACESETTERS PHONICS & DICTION INSTITUTE", 50, 95);
 
-            order.items.forEach(item => {
-                if (item.productType === "event") {
-                    doc.fontSize(14).font("Helvetica-Bold").text(item.title, 20, 110);
-                }
-            });
+            // Content Divider
+            doc.rect(50, 125, 500, 2).fill("white");
 
-            doc.fontSize(10).font("Helvetica").text(`Admit One: ${order.userEmail}`, 20, 150);
-            doc.text(`Ref: ${order.reference}`, 20, 165);
-            doc.text(`Date Issued: ${new Date().toDateString()}`, 20, 180);
+            // Event Details
+            const ticketItem = order.items.find(i => i.productType === "event") || order.items[0];
+            doc.fontSize(20).text(ticketItem.title, 50, 150, { width: 350 });
 
-            doc.fontSize(12).font("Helvetica-Bold").text("CONFIRMED", 280, 200, { align: "right" });
+            doc.fontSize(11).text(`ATTENDEE: ${order.userEmail}`, 50, 210);
+            doc.text(`TICKET NO: ${order.id.slice(0, 12).toUpperCase()}`, 50, 230);
+            doc.text(`ISSUE DATE: ${new Date().toLocaleDateString()}`, 50, 250);
+
+            // Status Badge
+            doc.rect(430, 180, 120, 50).fill("white");
+            doc.fillColor("#1e40af").fontSize(16).text("PAID/VALID", 440, 197, { width: 100, align: "center" });
 
             doc.end();
             stream.on('finish', () => resolve(filePath));
-            stream.on('error', (err) => reject(err));
         } catch (err) {
             reject(err);
         }

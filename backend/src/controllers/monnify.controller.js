@@ -263,3 +263,57 @@ export const getStats = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch stats" });
     }
 };
+export const createManualOrder = async (req, res) => {
+    const { userEmail, totalAmount, items } = req.body;
+
+    try {
+        const order = await prisma.order.create({
+            data: {
+                reference: `MAN-${Date.now()}`,
+                userEmail,
+                totalAmount: parseFloat(totalAmount),
+                paymentStatus: 'paid',
+                paidAt: new Date(),
+                items: {
+                    create: items.map(item => ({
+                        productType: item.type,
+                        title: item.title,
+                        price: parseFloat(item.price),
+                        quantity: parseInt(item.quantity),
+                        bookId: item.type === 'book' ? item.id : null,
+                        eventId: item.type === 'event' ? item.id : null
+                    }))
+                }
+            },
+            include: { items: true }
+        });
+
+        // Trigger Document Generation & Email
+        try {
+            if (order.items.some(i => i.productType === "book")) {
+                const path = await generateInvoicePDF(order);
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { invoiceUrl: `/api/download/invoice/${order.id}` }
+                });
+                await sendEmail(order.userEmail, path, "invoice");
+            }
+            if (order.items.some(i => i.productType === "event")) {
+                const path = await generateTicketPDF(order);
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { ticketUrl: `/api/download/ticket/${order.id}` }
+                });
+                await sendEmail(order.userEmail, path, "ticket");
+            }
+        } catch (err) {
+            console.error("Manual Order Doc Gen Error:", err);
+        }
+
+        res.status(201).json({ success: true, order });
+    } catch (error) {
+        console.error("Manual Order Creation Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
