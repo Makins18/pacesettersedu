@@ -19,18 +19,27 @@ const getMonnifyToken = async () => {
                 headers: {
                     Authorization: `Basic ${authString}`,
                 },
+                timeout: 10000 // 10s timeout
             }
         );
 
-        return response.data.responseBody.accessToken;
+        if (response.data && response.data.responseBody && response.data.responseBody.accessToken) {
+            return response.data.responseBody.accessToken;
+        }
+        throw new Error("Invalid response structure from Monnify");
     } catch (error) {
-        console.error("Monnify Token Error:", error.response?.data || error.message);
-        throw new Error("Failed to authenticate with Monnify");
+        const errorData = error.response?.data || error.message;
+        console.error("Monnify Token Error:", errorData);
+        throw new Error(`Monnify Auth Failed: ${JSON.stringify(errorData)}`);
     }
 };
 
 export const verifyMonnifyPayment = async (req, res) => {
     const { transactionReference, cartItems } = req.body;
+
+    if (!transactionReference) {
+        return res.status(400).json({ message: "Transaction reference is required" });
+    }
 
     try {
         const token = await getMonnifyToken();
@@ -46,21 +55,31 @@ export const verifyMonnifyPayment = async (req, res) => {
         const transaction = response.data.responseBody;
 
         if (transaction.paymentStatus === "PAID") {
-            // Check if order already exists to avoid duplicates
+            // Check if order already exists using the unique reference
             let order = await prisma.order.findUnique({
-                where: { id: transactionReference }, // Assuming transactionReference is the ID or unique field
+                where: { reference: transactionReference },
                 include: { items: true }
             });
 
-            // If not found by ID, try reference (if reference is used)
             if (!order) {
-                order = await prisma.order.findFirst({
-                    where: { reference: transactionReference },
-                    include: { items: true }
-                });
-            }
+                // Map cartItems to OrderItem creation data
+                // Ensure IDs are strings and prices are floats
+                const orderItemsData = cartItems.map(item => {
+                    const data = {
+                        productType: item.type || 'book',
+                        title: item.title,
+                        price: parseFloat(item.price),
+                        quantity: parseInt(item.quantity) || 1,
+                    };
 
-            if (!order) {
+                    if (item.type === 'book') {
+                        data.bookId = item.id;
+                    } else if (item.type === 'event') {
+                        data.eventId = item.id;
+                    }
+                    return data;
+                });
+
                 order = await prisma.order.create({
                     data: {
                         reference: transactionReference,
@@ -69,53 +88,60 @@ export const verifyMonnifyPayment = async (req, res) => {
                         paymentStatus: 'paid',
                         paidAt: new Date(),
                         items: {
-                            create: cartItems.map(item => ({
-                                productType: item.type || 'book',
-                                title: item.title,
-                                price: parseFloat(item.price),
-                                quantity: parseInt(item.quantity) || 1,
-                                bookId: item.type === 'book' ? item.id : null,
-                                eventId: item.type === 'event' ? item.id : null
-                            }))
+                            create: orderItemsData
                         }
                     },
                     include: { items: true }
                 });
 
+                console.log("Order created successfully:", order.id);
+
                 // Trigger Document Generation & Email
                 try {
-                    if (order.items.some(i => i.productType === "book")) {
+                    const hasBooks = order.items.some(i => i.productType === "book");
+                    const hasEvents = order.items.some(i => i.productType === "event");
+
+                    let updateData = {};
+
+                    if (hasBooks) {
                         const path = await generateInvoicePDF(order);
-                        order = await prisma.order.update({
-                            where: { id: order.id },
-                            data: { invoiceUrl: `/api/download/invoice/${order.id}` },
-                            include: { items: true }
-                        });
+                        updateData.invoiceUrl = `/api/download/invoice/${order.id}`;
                         await sendEmail(order.userEmail, path, "invoice");
                     }
-                    if (order.items.some(i => i.productType === "event")) {
+
+                    if (hasEvents) {
                         const path = await generateTicketPDF(order);
-                        order = await prisma.order.update({
-                            where: { id: order.id },
-                            data: { ticketUrl: `/api/download/ticket/${order.id}` },
-                            include: { items: true }
-                        });
+                        updateData.ticketUrl = `/api/download/ticket/${order.id}`;
                         await sendEmail(order.userEmail, path, "ticket");
                     }
+
+                    if (Object.keys(updateData).length > 0) {
+                        order = await prisma.order.update({
+                            where: { id: order.id },
+                            data: updateData,
+                            include: { items: true }
+                        });
+                    }
+
                     // Alert Admin
                     await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, order, "admin_alert");
                 } catch (err) {
-                    console.error("Post-Payment Processing Error:", err);
+                    console.error("Post-Payment Processing (Documents/Email) Error:", err);
                 }
+            } else {
+                console.log("Order already exists for reference:", transactionReference);
             }
 
             return res.status(200).json({ success: true, order, transaction });
         } else {
-            return res.status(400).json({ success: false, message: "Payment not successful" });
+            return res.status(400).json({ success: false, message: `Payment status: ${transaction.paymentStatus}`, transaction });
         }
     } catch (error) {
         console.error("Monnify Verification Error:", error.response?.data || error.message);
-        res.status(500).json({ message: "Server error during payment verification" });
+        res.status(500).json({
+            message: "Server error during payment verification",
+            error: error.response?.data || error.message
+        });
     }
 };
 
@@ -123,12 +149,18 @@ export const monnifyWebhook = async (req, res) => {
     const signature = req.headers["monnify-signature"];
     const requestBody = JSON.stringify(req.body);
 
+    if (!process.env.MONNIFY_SECRET_KEY) {
+        console.error("Webhook Error: MONNIFY_SECRET_KEY missing");
+        return res.status(500).send("Configuration Error");
+    }
+
     const computedSignature = crypto
         .createHmac("sha512", process.env.MONNIFY_SECRET_KEY)
         .update(requestBody)
         .digest("hex");
 
     if (signature !== computedSignature) {
+        console.warn("Invalid webhook signature received");
         return res.status(401).send("Invalid Signature");
     }
 
@@ -136,32 +168,41 @@ export const monnifyWebhook = async (req, res) => {
 
     if (eventType === "SUCCESSFUL_TRANSACTION") {
         try {
-            // Idempotent update: Only update if not already paid
-            const order = await prisma.order.update({
+            // Find or update the order
+            let order = await prisma.order.findUnique({
                 where: { reference: eventData.transactionReference },
-                data: {
-                    paymentStatus: 'paid',
-                    paidAt: new Date()
-                },
                 include: { items: true }
             });
 
-            if (order) {
-                // Trigger Document Generation & Email for Webhook success too
-                if (order.items.some(i => i.productType === "book")) {
-                    const path = await generateInvoicePDF(order);
-                    await sendEmail(order.userEmail, path, "invoice");
+            if (order && order.paymentStatus !== 'paid') {
+                order = await prisma.order.update({
+                    where: { id: order.id },
+                    data: {
+                        paymentStatus: 'paid',
+                        paidAt: new Date()
+                    },
+                    include: { items: true }
+                });
+
+                // Trigger Document Generation & Email for Webhook success
+                try {
+                    if (order.items.some(i => i.productType === "book")) {
+                        const path = await generateInvoicePDF(order);
+                        await sendEmail(order.userEmail, path, "invoice");
+                    }
+                    if (order.items.some(i => i.productType === "event")) {
+                        const path = await generateTicketPDF(order);
+                        await sendEmail(order.userEmail, path, "ticket");
+                    }
+                    // Alert Admin via Webhook
+                    await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, order, "admin_alert");
+                } catch (sendErr) {
+                    console.error("Webhook post-processing error:", sendErr);
                 }
-                if (order.items.some(i => i.productType === "event")) {
-                    const path = await generateTicketPDF(order);
-                    await sendEmail(order.userEmail, path, "ticket");
-                }
-                // Alert Admin via Webhook too
-                await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, order, "admin_alert");
             }
-            console.log("Monnify Webhook: SUCCESS Saved & Processed", eventData.transactionReference);
+            console.log("Monnify Webhook: Transaction Processed", eventData.transactionReference);
         } catch (err) {
-            console.error("Webhook Order Update Error:", err);
+            console.error("Webhook Logic Error:", err);
         }
     }
 

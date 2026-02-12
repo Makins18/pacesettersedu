@@ -83,7 +83,7 @@ export default function AdminOrders() {
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                             {filteredOrders.map((order) => (
                                                 <motion.tr
-                                                    key={order._id}
+                                                    key={order.id}
                                                     initial={{ opacity: 0 }}
                                                     animate={{ opacity: 1 }}
                                                     className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
