@@ -153,7 +153,7 @@ export default function AdminBooks() {
                                             </tr>
                                         ) : filteredBooks.map((book) => (
                                             <motion.tr
-                                                key={book._id}
+                                                key={book.id}
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
@@ -179,7 +179,7 @@ export default function AdminBooks() {
                                                             <Edit2 size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(book._id)}
+                                                            onClick={() => handleDelete(book.id)}
                                                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         >
                                                             <Trash2 size={16} />

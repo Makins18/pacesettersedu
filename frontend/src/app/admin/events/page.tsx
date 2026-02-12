@@ -132,7 +132,7 @@ export default function AdminEvents() {
                                             </tr>
                                         ) : events.map((event) => (
                                             <motion.tr
-                                                key={event._id}
+                                                key={event.id}
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
@@ -179,7 +179,7 @@ export default function AdminEvents() {
                                                             <Edit2 size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(event._id)}
+                                                            onClick={() => handleDelete(event.id)}
                                                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         >
                                                             <Trash2 size={16} />

@@ -102,7 +102,7 @@ export default function BooksPage() {
                         <div className="text-center py-20 text-gray-500">No books available yet.</div>
                     ) : books.map((book, idx) => (
                         <motion.div
-                            key={book._id}
+                            key={book.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.1 }}
