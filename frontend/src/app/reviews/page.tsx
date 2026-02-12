@@ -7,13 +7,13 @@ const reviews = [
         name: "Abiodun Owolabi",
         role: "School Administrator",
         content: "The level of professionalism and the impact on our students' speech has been nothing short of transformative. A true partner in excellence.",
-        stars: 5
+        stars: 3
     },
     {
         name: "Mrs. Adeyemi",
         role: "Parent",
         content: "I've seen a massive boost in my children's reading and speaking confidence. The PDIE series is truly well-researched.",
-        stars: 5
+        stars: 4
     },
     {
         name: "Olawale Johnson",

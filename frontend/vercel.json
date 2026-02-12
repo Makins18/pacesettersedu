@@ -1,0 +1,8 @@
+{
+    "version": 2,
+    "env": {
+        "NEXT_PUBLIC_BASE_URL": "https://pacesettersedu-mdyr.vercel.app",
+        "NEXT_PUBLIC_MONNIFY_API_KEY": "MMK_TEST_CR0ZSJP8EJ",
+        "NEXT_PUBLIC_MONNIFY_CONTRACT_CODE": "3058966820"
+    }
+}

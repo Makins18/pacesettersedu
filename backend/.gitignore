@@ -54,3 +54,5 @@ typings/
 # Output of invoice generation (if stored locally initially)
 invoices/*.pdf
 tickets/*.pdf
+.vercel
+.env*.local

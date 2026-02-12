@@ -9,7 +9,31 @@
     "routes": [
         {
             "src": "/(.*)",
-            "dest": "src/server.js"
+            "dest": "src/server.js",
+            "methods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "OPTIONS"
+            ]
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production",
+        "DATABASE_URL": "postgresql://neondb_owner:npg_LgXwzn4TUDv7@ep-frosty-base-aig6mlxk-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require",
+        "JWT_SECRET": "supersecurekey",
+        "MONNIFY_API_KEY": "MMK_TEST_CR0ZSJP8EJ",
+        "MONNIFY_SECRET_KEY": "NLUGDW5NXAE9E11MTUPQYBMJUVP0F55S",
+        "MONNIFY_CONTRACT_CODE": "3058966820",
+        "MONNIFY_BASE_URL": "https://sandbox.monnify.com/api/v1",
+        "CLOUDINARY_CLOUD_NAME": "dy9nvim74",
+        "CLOUDINARY_API_KEY": "354663974511776",
+        "CLOUDINARY_API_SECRET": "uAy-8_W7SC4k2f_0jtZbUwZ-dk8",
+        "CLOUDINARY_URL": "cloudinary://354663974511776:uAy-8_W7SC4k2f_0jtZbUwZ-dk8@dy9nvim74",
+        "EMAIL_USER": "pacesetterspdieweb@gmail.com",
+        "EMAIL_PASS": "paceWebsetters.Edu16",
+        "ADMIN_EMAIL": "pacesetterspdieweb@gmail.com"
+    }
 }

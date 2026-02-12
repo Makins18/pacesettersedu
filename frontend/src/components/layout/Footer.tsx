@@ -30,7 +30,7 @@ export default function Footer() {
                             <li><FooterLink href="/services">Our Services</FooterLink></li>
                             <li><FooterLink href="/reviews">Testimonials</FooterLink></li>
                             <li><FooterLink href="/contact">Contact</FooterLink></li>
-                            {/* Admin link hidden from customers */}
+                            <li><FooterLink href="/admin/login" className="opacity-0 hover:opacity-100 transition-opacity text-[10px]">Staff Portal</FooterLink></li>
                         </ul>
                     </div>
 
@@ -97,9 +97,9 @@ function SocialIcon({ icon, href }: { icon: React.ReactNode; href: string }) {
     );
 }
 
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+function FooterLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
     return (
-        <Link href={href} className="hover:text-white hover:translate-x-1 transition-all duration-200 inline-block">
+        <Link href={href} className={`hover:text-white hover:translate-x-1 transition-all duration-200 inline-block ${className}`}>
             {children}
         </Link>
     );
