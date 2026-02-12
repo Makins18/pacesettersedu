@@ -37,6 +37,8 @@ const getMonnifyToken = async () => {
 export const verifyMonnifyPayment = async (req, res) => {
     const { transactionReference, cartItems } = req.body;
 
+    console.log(`>>> Starting verification for reference: ${transactionReference}`);
+
     if (!transactionReference) {
         return res.status(400).json({ message: "Transaction reference is required" });
     }
@@ -53,6 +55,7 @@ export const verifyMonnifyPayment = async (req, res) => {
         );
 
         const transaction = response.data.responseBody;
+        console.log(`>>> Monnify status: ${transaction.paymentStatus} for ref: ${transactionReference}`);
 
         if (transaction.paymentStatus === "PAID") {
             // Check if order already exists using the unique reference
@@ -62,20 +65,22 @@ export const verifyMonnifyPayment = async (req, res) => {
             });
 
             if (!order) {
+                console.log(">>> Creating new order in database...");
                 // Map cartItems to OrderItem creation data
-                // Ensure IDs are strings and prices are floats
                 const orderItemsData = cartItems.map(item => {
                     const data = {
                         productType: item.type || 'book',
                         title: item.title,
-                        price: parseFloat(item.price),
+                        price: parseFloat(item.price) || 0,
                         quantity: parseInt(item.quantity) || 1,
                     };
 
+                    // Handle IDs carefully (support both id and _id if frontend fluctuates)
+                    const productId = item.id || item._id;
                     if (item.type === 'book') {
-                        data.bookId = item.id;
+                        data.bookId = productId;
                     } else if (item.type === 'event') {
-                        data.eventId = item.id;
+                        data.eventId = productId;
                     }
                     return data;
                 });
@@ -94,7 +99,7 @@ export const verifyMonnifyPayment = async (req, res) => {
                     include: { items: true }
                 });
 
-                console.log("Order created successfully:", order.id);
+                console.log("✓ Order created successfully:", order.id);
 
                 // Trigger Document Generation & Email
                 try {
@@ -126,21 +131,27 @@ export const verifyMonnifyPayment = async (req, res) => {
                     // Alert Admin
                     await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, order, "admin_alert");
                 } catch (err) {
-                    console.error("Post-Payment Processing (Documents/Email) Error:", err);
+                    console.error("✗ Post-Payment Processing Error:", err);
                 }
             } else {
-                console.log("Order already exists for reference:", transactionReference);
+                console.log(">>> Order already exists for reference:", transactionReference);
             }
 
             return res.status(200).json({ success: true, order, transaction });
         } else {
-            return res.status(400).json({ success: false, message: `Payment status: ${transaction.paymentStatus}`, transaction });
+            console.warn(`⚠ Transaction not paid. Status: ${transaction.paymentStatus}`);
+            return res.status(400).json({
+                success: false,
+                message: `Transaction not paid. Status: ${transaction.paymentStatus}`,
+                transaction
+            });
         }
     } catch (error) {
-        console.error("Monnify Verification Error:", error.response?.data || error.message);
+        const errorMsg = error.response?.data || error.message;
+        console.error("✗ Monnify Verification Error:", errorMsg);
         res.status(500).json({
-            message: "Server error during payment verification",
-            error: error.response?.data || error.message
+            message: "Payment verification failed on server",
+            error: errorMsg
         });
     }
 };

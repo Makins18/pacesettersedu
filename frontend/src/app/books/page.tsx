@@ -32,15 +32,19 @@ export default function BooksPage() {
 
     const handleCheckout = (book: any) => {
         setStatus({ type: null, msg: '' });
+        console.log(`>>> Starting checkout for book: ${book.title}`);
+
         initializePayment({
             amount: book.price,
             customerName: "Guest User",
             customerEmail: "customer@example.com",
             reference: `BOOK-${Date.now()}`,
             onSuccess: async (response) => {
-                console.log("Payment Successful", response);
+                console.log(">>> Monnify Payment Success Response:", response);
+                setStatus({ type: 'success', msg: 'Processing your order... please wait.' });
+
                 try {
-                    await api.post("/api/monnify/verify", {
+                    const verifyRes = await api.post("/api/monnify/verify", {
                         transactionReference: response.transactionReference,
                         cartItems: [{
                             id: book.id,
@@ -50,14 +54,20 @@ export default function BooksPage() {
                             quantity: 1
                         }]
                     });
-                    alert("Thank you for your purchase! Your order has been recorded.");
-                    setStatus({ type: 'success', msg: 'Payment successful! Your order has been recorded.' });
-                } catch (err) {
-                    console.error("Verification failed", err);
-                    setStatus({ type: 'error', msg: 'Payment received, but recording failed. Support notified.' });
+
+                    if (verifyRes.data.success) {
+                        alert("Thank you for your purchase! Your order has been recorded.");
+                        setStatus({ type: 'success', msg: 'Payment successful! Order recorded.' });
+                    } else {
+                        throw new Error(verifyRes.data.message || "Verification failed");
+                    }
+                } catch (err: any) {
+                    console.error("✗ Order Verification Failed:", err.response?.data || err.message);
+                    const errMsg = err.response?.data?.message || "Payment verified by Monnify, but order recording failed. Support notified.";
+                    setStatus({ type: 'error', msg: errMsg });
                 }
             },
-            onClose: (data) => console.log("Payment Closed", data)
+            onClose: (data) => console.log(">>> Monnify Checkout Closed:", data)
         });
     };
 

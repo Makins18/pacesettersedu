@@ -32,7 +32,12 @@ redis.on("close", () => {
 });
 
 // Attempt to connect
-redis.connect().catch((err) => {
+redis.connect().then(async () => {
+    const result = await redis.ping();
+    if (result === "PONG") {
+        console.log("✓ Redis PING-PONG successful");
+    }
+}).catch((err) => {
     console.warn("⚠ Redis unavailable. Running without caching:", err.message);
 });
 

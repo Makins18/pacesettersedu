@@ -44,3 +44,21 @@ If you want to keep your data between deploys on Render:
 
 ## 5. Deployment with Docker (Render/DigitalOcean)
 You can also use the `docker-compose.yml` and `Dockerfile` provided for platforms that support containerization (like Render's "Web Service" with Docker runtime).
+
+## 6. Final 10-Step Launch Checklist
+
+Follow these steps for a successful production launch:
+
+1.  **Monnify Production**: Switch `MONNIFY_BASE_URL` to `https://api.monnify.com/api/v1` in Render environment variables.
+2.  **API Keys**: Replace all `TEST` keys with `PROD` keys in both Vercel and Render.
+3.  **Database Sync**: Run `npx prisma db push` on Render (via SSH or Shell) to ensure the DB is ready.
+4.  **Redis Check**: Verify Render Redis is "Internal" or "Public" and the `REDIS_URL` matches exactly.
+5.  **Environment Sync**: Ensure `NEXT_PUBLIC_BASE_URL` in Vercel points to your `xxx.onrender.com` backend.
+6.  **CORS**: Verify backend `server.js` allows your Vercel domain.
+7.  **Admin Update**: Log in to [your-site]/admin/login and delete all "Demo" books/events.
+8.  **SMTP**: Test a "Contact Us" message to ensure `EMAIL_USER` can send mail.
+9.  **SSL**: Wait for Vercel/Render to finish issuing SSL certificates.
+10. **Done!**: Your site is live and professional.
+
+---
+*Created by Pacesetters Development Team*
